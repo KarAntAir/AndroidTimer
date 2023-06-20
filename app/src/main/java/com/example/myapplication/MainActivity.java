@@ -1,6 +1,8 @@
 package com.example.myapplication;
 
+import android.content.Context;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.view.View;
 import android.widget.Button;
@@ -8,6 +10,15 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStreamReader;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -29,6 +40,9 @@ public class MainActivity extends AppCompatActivity {
         elapsedTimeTextView = findViewById(R.id.elapsedTimeTextView);
 
         handler = new Handler();
+
+        totalElapsedTime = readElapsedTimeFromFile();
+        updateElapsedTimeTextView();
 
         startButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -77,9 +91,63 @@ public class MainActivity extends AppCompatActivity {
         handler.removeCallbacks(runnable);
         Toast.makeText(this, "Timer stopped", Toast.LENGTH_SHORT).show();
 
-        // Здесь можно сохранить значение totalElapsedTime в базе данных или файле
-        // для последующего использования или отображения
+        // Сохраняем значение totalElapsedTime в файл
+        saveElapsedTimeToFile();
     }
+
+    private void saveElapsedTimeToFile() {
+        String filename = "elapsed_time.txt";
+        String elapsedTimeString = String.valueOf(totalElapsedTime);
+
+        try {
+            FileOutputStream fos = openFileOutput(filename, Context.MODE_PRIVATE);
+            fos.write(elapsedTimeString.getBytes());
+            fos.close();
+            Toast.makeText(this, "Elapsed time saved to file", Toast.LENGTH_SHORT).show();
+        } catch (IOException e) {
+            e.printStackTrace();
+            Toast.makeText(this, "Failed to save elapsed time to file", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private long readElapsedTimeFromFile() {
+        String filename = "elapsed_time.txt";
+        StringBuilder stringBuilder = new StringBuilder();
+        FileInputStream fis = null;
+        BufferedReader bufferedReader = null;
+
+        try {
+            fis = openFileInput(filename);
+            bufferedReader = new BufferedReader(new InputStreamReader(fis));
+
+            String line;
+            while ((line = bufferedReader.readLine()) != null) {
+                stringBuilder.append(line);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                if (bufferedReader != null) {
+                    bufferedReader.close();
+                }
+                if (fis != null) {
+                    fis.close();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        try {
+            return Long.parseLong(stringBuilder.toString());
+        } catch (NumberFormatException e) {
+            e.printStackTrace();
+        }
+
+        return 0;
+    }
+
 
     private void updateElapsedTimeTextView() {
         elapsedTimeTextView.setText("Total Elapsed Time: " + totalElapsedTime / 1000 + " seconds");
